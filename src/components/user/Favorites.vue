@@ -1,0 +1,314 @@
+<template>
+  <div class="box">
+    <p class="title">Container.is-dark</p>
+    <div class="layout_page" id="content-inner">
+      <div class="aside_content" id="aside_content">
+        <div class="card-widget card-info">
+          <div class="card-content">
+            <div class="avatar" style="text-align: center">
+              <hr />
+
+              <h2 class="nes-text is-primary">用户收藏列表</h2>
+
+              <hr />
+            </div>
+            <div class="card-info-social-icons is-center">
+              <a class="social-icon" href="#" target="_blank">
+                <i class="fa fa-github"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="tool">
+          <button class="nes-btn" @click="returnUserCenter">
+            返回用户中心
+          </button>
+          <div class="search bar" style="float: right; position: relative">
+            <form>
+              <input
+                class=""
+                type="text"
+                v-model="searchString"
+                placeholder="在这输入您要搜索的商品名称..."
+              />
+            </form>
+          </div>
+        </div>
+
+        <ul>
+          <p
+            v-if="seen"
+            style="
+              color: rgb(255, 0, 174);
+              font-size: 30px;
+              font-weight: bold;
+              text-align: center;
+            "
+          >
+            {{ warning }}
+          </p>
+          <!--//判断搜索是否有数据后返回提示  -->
+          <div class="col-md-9">
+            <!-- 循环输出数据 -->
+            <div v-for="article in filteredArticles" :key="article">
+              <!--//循环输出数据  -->
+              <hr />
+              <div class="nes-container is-rounded">
+                <table border="0">
+                  <tr>
+                    <td rowspan="2">
+                      <div class="col-md-4">
+                        <a @click="lookItem(article.id)" class="angled-img"
+                          ><!--//跳转到详情页 -->
+                          <div class="img">
+                            <img
+                              style="image-rendering: pixelated; size: 200px"
+                              v-bind:src="article.images"
+                              alt=""
+                            /><!--//图片 -->
+                          </div>
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                  <td>
+                    <ul>
+                      <li>
+                        <h3>名称：{{ article.commodityName }}</h3>
+                      </li>
+                      <li>
+                        <h3>描述：{{ article.commodityDescribe }}</h3>
+                      </li>
+                      <li>
+                        <h3>价格：{{ article.price }} 元</h3>
+                      </li>
+                      <li>
+                        <h3>状态：{{ article.status }}</h3>
+                      </li>
+                      <li>
+                        <h3>是否被删除：{{ article.isDeleted }}</h3>
+                      </li>
+                      <li>
+                        <h3>发布时间：{{ article.createTime }}</h3>
+                      </li>
+                      <li>
+                        <h3>更新时间：{{ article.updateTime }}</h3>
+                      </li>
+                      <li>
+                        <h3>发布商家：{{ article.createUser }}</h3>
+                      </li>
+                      <li>
+                        <h3>更新商家：{{ article.updateUser }}</h3>
+                      </li>
+                      <div
+                        style="
+                          background-color: #212529;
+                          padding: 1rem 0;
+                          width: 400px;
+                        "
+                      >
+                        <label>
+                          <input
+                            type="checkbox"
+                            class="nes-checkbox is-dark"
+                            @click="deleteFavorite(article.id)"
+                            checked
+                          />
+                          <span style="font-size: 18.72px"
+                            >是否收藏<span class="nes-text is-error"
+                              >(取消勾选则取消收藏)</span
+                            ></span
+                          >
+                        </label>
+                      </div>
+                    </ul>
+                  </td>
+                  <tr>
+                    <td></td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+            <!-- /循环输出数据 -->
+            <br />
+          </div>
+
+          <!-- /创建美化样式盒子 -->
+        </ul>
+      </div>
+    </div>
+  </div>
+</template>
+  
+  
+  <script>
+import axios from "axios";
+
+export default {
+  name: "User",
+  data() {
+    return {
+      user: {},
+      articles: [],
+      searchString: "", //搜索
+      warning: "没有任何收藏或者搜索不到相关收藏",
+      seen: false,
+      ifsearch: false,
+    };
+  },
+
+  created: function () {
+    this.user = JSON.parse(localStorage.getItem("user"));
+    if (this.user == null) {
+      alert("您还未登录，为您跳转到登录处");
+      this.$router.push({ path: "/login" });
+    }
+    var list = JSON.parse("[]");
+    axios
+      .get("http://127.0.0.1:4523/m2/2501124-0-default/73722126", {
+        headers: { satoken: this.user.token },
+      })
+      .then((res) => {
+        console.log(res);
+
+        if (res.data.data == null) {
+          seen = true;
+        } else {
+          this.articles = res.data.data;
+          console.log(this.articles);
+        }
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  },
+  computed: {
+    // 计算数学，匹配搜索
+    filteredArticles: function () {
+      var articles_array = this.articles,
+        searchString = this.searchString;
+      if (!searchString) {
+        this.seen = false; //默认没有搜索时的提示不可见
+        return articles_array;
+      }
+      searchString = searchString.trim().toLowerCase();
+
+      articles_array = articles_array.filter(function (item) {
+        if (item.commodityName.toLowerCase().indexOf(searchString) !== -1) {
+          return item;
+        }
+      });
+      var len = articles_array.length;
+      if (len == 0) {
+        this.seen = true; //没有搜索到结果时的提示可见
+      } else {
+        this.seen = false; //有搜索到结果时的提示不可见
+      }
+      // 返回过来后的数组
+      return articles_array;
+    },
+  },
+  methods: {
+    //取消收藏
+    deleteFavorite(artcileid) {
+      var params = new URLSearchParams();
+      params.append("commodity", artcileid);
+      axios
+        .post("http://127.0.0.1:4523/m2/2501124-0-default/73722140", params, {
+          headers: {
+            satoken: this.user.token,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+        })
+        .then((res) => {
+          console.log(res);
+          alert("取消收藏成功");
+          this.$router.go(0);
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    }, //取消收藏
+    //返回用户中心
+    returnUserCenter() {
+      this.$router.push({ path: "/user" });
+    },
+    //跳转到详情页
+
+    lookItem(id) {
+      localStorage.setItem('Item', JSON.stringify(id))
+      this.$router.push({ path: "/workindex"})
+    },
+  },
+};
+</script>
+  
+  <style>
+.box {
+  margin-top: 1%;
+  width: 100%;
+  height: 100%;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  box-sizing: border-box;
+  margin-bottom: 20px;
+}
+.avatar {
+  border-radius: 50%;
+
+  margin: 0 auto;
+  margin-top: 2%;
+  margin-bottom: 20px;
+}
+.tool {
+  margin-top: 2%;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+}
+
+/*搜索框*/
+
+.bar form {
+  height: 42px;
+}
+
+.bar input {
+  width: 250px;
+  height: 50px;
+  border-radius: 42px;
+  border: 2px solid #181399;
+  color: rgb(255, 0, 174);
+  font-size: 15px;
+  font-weight: bold;
+  background-color: transparent;
+  transition: 0.3s linear;
+  float: right;
+}
+
+.bar input:focus {
+  width: 300px;
+}
+
+.bar input::-webkit-input-placeholder {
+  color: rgb(0, 255, 187);
+  font-size: 15px;
+  font-weight: bold;
+}
+
+.bar button {
+  background: none;
+  top: -2px;
+  right: 0;
+}
+
+.bar button:before {
+  content: "\f002";
+  font-family: FontAwesome;
+  color: #3b324e9d;
+}
+</style>
