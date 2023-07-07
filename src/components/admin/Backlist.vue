@@ -21,38 +21,30 @@
         </div>
 
         <div class="tool">
-          <button class="nes-btn" @click="gotoLast" style="writing-mode:horizontal-tb">
+          <button class="nes-btn" @click="gotoLast" style="writing-mode: horizontal-tb">
             返回上一页
           </button>
 
           <div class="search bar" style="float: right; position: relative">
             <form>
-              <input
-                class=""
-                type="text"
-                v-model="searchString"
-                placeholder="在这输入您要搜索的商品/商家名称"
-              />
+              <input class="" type="text" v-model="searchString" placeholder="在这输入您要搜索的商品/商家名称" />
             </form>
           </div>
         </div>
 
         <ul>
-          <p
-            v-if="seen"
-            style="
+          <p v-if="seen" style="
               color: rgb(255, 0, 174);
               font-size: 30px;
               font-weight: bold;
               text-align: center;
-            "
-          >
+            ">
             {{ warning }}
           </p>
           <!--//判断搜索是否有数据后返回提示  -->
-          <div class="col-md-9" >
+          <div class="col-md-9">
             <!-- 循环输出数据 -->
-            <div v-for="article in filteredArticles" :key="article">
+            <div v-for="(article, index) in filteredArticles" :key="article">
               <!--//循环输出数据  -->
               <hr style="text-align: center" />
               <div class="nes-container is-rounded">
@@ -60,14 +52,14 @@
                   <tr>
                     <td rowspan="2">
                       <div class="col-md-4">
-                        <a @click="lookItem(article.id)" class="angled-img"
-                          ><!--//跳转到详情页 -->
+                        <a @click="lookItem(article.commodityId)" class="angled-img"><!--//跳转到详情页 -->
                           <div class="img">
-                            <img
-                              style="image-rendering: pixelated; size: 200px"
-                              v-bind:src="article.images"
-                              alt=""
-                            /><!--//图片 -->
+                            <img style="image-rendering: pixelated; size: 200px" v-bind:src="imageArray[index]"
+                              alt="imageArray[index]" :style="{
+                                width: '400px',
+                                height: '400px',
+                                objectFit: 'cover',
+                              }" /><!--//图片 -->
                           </div>
                         </a>
                       </div>
@@ -91,16 +83,17 @@
                         <h3>商品状态：{{ article.status }}</h3>
                       </li>
                       <li>
-                        <h3>下单金额：{{ article.amount}}</h3>
+                        <h3>下单金额：{{ article.amount }}</h3>
                       </li>
                       <li>
                         <h3>订单时间：{{ article.orderTime }}</h3>
                       </li>
 
                       <div>
-                      <button type="button" class="nes-btn is-primary" @click="BackItem(article.id)">审核退货</button>
-
-        </div>
+                        <button type="button" class="nes-btn is-primary" @click="BackItem(article.id)">
+                          审核退货
+                        </button>
+                      </div>
                     </ul>
                   </td>
                   <tr>
@@ -119,9 +112,8 @@
     </div>
   </div>
 </template>
-  
-  
-  <script>
+
+<script>
 import axios from "axios";
 
 export default {
@@ -135,22 +127,28 @@ export default {
       seen: false,
       ifsearch: false,
       chosen: -1,
+      imageArray: [],
     };
   },
 
   created: function () {
     this.user = JSON.parse(localStorage.getItem("user"));
-    if (this.user == null) {
-      alert("您还未登录，为您跳转到登录处");
-      this.$router.push({ path: "/login" });
-    }
-    if(this.user.role=="white")
-    {
-      alert("您的权限不足，为您跳转到用户中心");
-      this.$router.push({ path: "/user" });
-    }
     axios
-      .get("http://127.0.0.1:4523/m1/2501124-0-default/admin/getBackList", {
+      .get("http://47.115.209.249:8080/user", {
+        headers: { satoken: this.user.token },
+      })
+      .then((res) => {
+        if (res.data.data.role == "admin") {
+        } else {
+          alert("您的权限不足，为您跳转到用户中心");
+          this.$router.push({ path: "/user" });
+        }
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    axios
+      .get("http://47.115.209.249:8080/admin/getBackList", {
         headers: { satoken: this.user.token },
       })
       .then((res) => {
@@ -160,6 +158,9 @@ export default {
           seen = true;
         } else {
           this.articles = res.data.data.list;
+          for (let i = 0; i < this.articles.length; i++) {
+            this.loadImage(this.articles[i].commodityId);
+          }
           console.log(this.articles);
         }
       })
@@ -173,13 +174,10 @@ export default {
       var articles_array = this.articles,
         searchString = this.searchString;
       if (!searchString) {
-  
-       
         this.seen = false; //默认没有搜索时的提示不可见
         return articles_array;
-    
- }
-   
+      }
+
       searchString = searchString.trim().toLowerCase();
 
       articles_array = articles_array.filter(function (item) {
@@ -198,43 +196,72 @@ export default {
     },
   },
   methods: {
-    
+    //获取订单商品的图片
+    getimage(id) {
+      return new Promise(async (resolve, reject) => {
+        try {
+          const params = new URLSearchParams();
+          params.append("id", id);
+          const response = await fetch(
+            `http://47.115.209.249:8080/commodity/id?id=${id}`,
+            {
+              headers: {
+                satoken: this.user.token,
+              },
+            }
+          );
 
-    //被找回处理
+          const data = await response.json();
+
+          resolve(data.data.images);
+        } catch (err) {
+          reject(err);
+        }
+      });
+    },
+    //导入订单商品的图片
+    async loadImage(id) {
+      try {
+        const images = await this.getimage(id);
+
+        this.imageArray.push(images);
+        console.log(this.imageArray);
+      } catch (error) {
+        console.error(error);
+      }
+    },
+
+    //审核退货
     BackItem(id) {
       var params = new URLSearchParams();
       params.append("orderId", id);
       axios
-        .post("http://127.0.0.1:4523/m1/2501124-0-default/admin/checkGetBack",params, {
+        .post("http://47.115.209.249:8080/admin/checkGetBack", params, {
           headers: {
             satoken: this.user.token,
-           
+            "Content-Type": "application/x-www-form-urlencoded",
           },
         })
         .then((res) => {
-          console.log(res);
-          alert("处理成功");
-          this.$router.go(0);
+          if (res.data.code == 200) {
+            alert(res.data.msg);
+            this.$router.go(0);
+          } else alert("审核失败");
         })
         .catch((err) => {
           console.log(err);
         });
-  },
- 
-   
+    },
 
-
-   //返回上一页
+    //返回上一页
     gotoLast() {
       this.$router.go(-1);
+    },
   },
-
-},
- 
 };
 </script>
-  
-  <style>
+
+<style>
 .box {
   margin-top: 1%;
   width: 100%;
@@ -246,6 +273,7 @@ export default {
   box-sizing: border-box;
   margin-bottom: 20px;
 }
+
 .avatar {
   border-radius: 50%;
 
@@ -253,6 +281,7 @@ export default {
   margin-top: 2%;
   margin-bottom: 20px;
 }
+
 .tool {
   margin-top: 2%;
   margin-bottom: 20px;
@@ -260,7 +289,8 @@ export default {
   align-items: center;
   justify-content: space-around;
 }
-.tool select{
+
+.tool select {
   border-radius: 5px;
   color: #000;
   font-size: 14px;
@@ -270,9 +300,6 @@ export default {
   background-color: transparent;
   transition: 0.3s linear;
   float: right;
-
-
-
 }
 
 /*搜索框*/

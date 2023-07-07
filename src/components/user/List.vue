@@ -21,6 +21,7 @@
         </div>
 
         <div class="tool">
+          <button class="nes-btn is-primary" @click="goPublish">发布</button>
           <div class="nes-select is-success" style="margin-left: auto">
             <select required id="warning_select" v-model="chosen">
               <option value="" disabled selected hidden>请选择订单类型</option>
@@ -59,8 +60,11 @@
                       <div class="col-md-4">
                         <a @click="lookItem(article.id)" class="angled-img"><!--//跳转到详情页 -->
                           <div class="img">
-                            <img style="image-rendering: pixelated; size: 200px" v-bind:src="article.images"
-                              alt="" /><!--//图片 -->
+                            <img style="image-rendering: pixelated; size: 200px" v-bind:src="article.images" :style="{
+                              width: '400px',
+                              height: '400px',
+                              objectFit: 'cover',
+                            }" alt="" /><!--//图片 -->
                           </div>
                         </a>
                       </div>
@@ -99,7 +103,7 @@
                         <button type="button" class="nes-btn is-primary" @click="lookItem(article.id)">
                           查看详细
                         </button>
-                        <button type="button" class="nes-btn is-warning">
+                        <button type="button" class="nes-btn is-warning" @click="updateItem(article.id)">
                           修改商品
                         </button>
                         <button type="button" class="nes-btn is-error" @click="deletework(article.id)">
@@ -150,7 +154,7 @@ export default {
     }
     var list = JSON.parse("[]");
     axios
-      .get("http://127.0.0.1:4523/m2/2501124-0-default/73722126", {
+      .get("http://47.115.209.249:8080/user/auditingCommodities", {
         headers: { satoken: this.user.token },
       })
       .then((res) => {
@@ -196,10 +200,11 @@ export default {
   methods: {
     //取消收藏
     deleteFavorite(artcileid) {
+      this.user = JSON.parse(localStorage.getItem("user"));
       var params = new URLSearchParams();
       params.append("commodity", artcileid);
       axios
-        .post("http://127.0.0.1:4523/m2/2501124-0-default/73722140", params, {
+        .post("http://47.115.209.249:8080/favorites/cancel", params, {
           headers: {
             satoken: this.user.token,
             "Content-Type": "application/x-www-form-urlencoded",
@@ -214,30 +219,40 @@ export default {
           console.log(err);
         });
     }, //取消收藏
+    //前往发布商品
+    goPublish() {
+      this.$router.push({ path: "/Submit" });
+    },
     //返回用户中心
     returnUserCenter() {
       this.$router.push({ path: "/user" });
     },
     //跳转到详情页
     lookItem(id) {
-      localStorage.setItem('Item', JSON.stringify(id))
-      this.$router.push({ path: "/workindex" })
+      localStorage.setItem("Item", JSON.stringify(id));
+      this.$router.push({ path: "/workindex" });
+    },
+    //跳转到修改页
+    updateItem(id) {
+      localStorage.setItem("updateItem", JSON.stringify(id));
+      this.$router.push({ path: "/update" });
     },
     //删除商品
     deletework(id) {
+      this.user = JSON.parse(localStorage.getItem("user"));
       var params = new URLSearchParams();
       params.append("id", id);
       axios
-        .delete("http://127.0.0.1:4523/m2/2501124-0-default/73126718", params, {
+        .delete("http://47.115.209.249:8080/commodity", {
           headers: {
             satoken: this.user.token,
             "Content-Type": "application/x-www-form-urlencoded",
           },
+          params,
         })
         .then((res) => {
           console.log(res);
           alert("删除成功");
-          this.$router.go(0);
         })
         .catch((err) => {
           console.log(err);
@@ -246,10 +261,12 @@ export default {
   },
   watch: {
     chosen(val, oldval) {
+      this.user = JSON.parse(localStorage.getItem("user"));
       if (val == 0) {
-        axios.get('http://127.0.0.1:4523/m1/2501124-0-default/user/passedCommodities', {
-          headers: { satoken: this.user.token },
-        })
+        axios
+          .get("http://47.115.209.249:8080/user/passedCommodities", {
+            headers: { satoken: this.user.token },
+          })
           .then((res) => {
             console.log(res);
 
@@ -257,27 +274,11 @@ export default {
               seen = true;
             } else {
               this.articles = res.data.data;
-
             }
-          })
-      }
-      else if (val == 1) {
-        axios.get('http://127.0.0.1:4523/m1/2501124-0-default/user/failedCommodities', {
-          headers: { satoken: this.user.token },
-        })
-          .then((res) => {
-            console.log(res);
-            if (res.data.data == null) {
-              seen = true;
-            } else {
-              this.articles = res.data.data;
-
-            }
-          })
-      }
-      else if (val == 2) {
-        axios.get('http://127.0.0.1:4523/m1/2501124-0-default/user/auditingCommodities'
-          , {
+          });
+      } else if (val == 1) {
+        axios
+          .get("http://47.115.209.249:8080/user/failedCommodities", {
             headers: { satoken: this.user.token },
           })
           .then((res) => {
@@ -286,28 +287,37 @@ export default {
               seen = true;
             } else {
               this.articles = res.data.data;
-
             }
+          });
+      } else if (val == 2) {
+        axios
+          .get("http://47.115.209.249:8080/user/auditingCommodities", {
+            headers: { satoken: this.user.token },
           })
-      }
-      else if (val == 3) {
-        axios.get('http://127.0.0.1:4523/m1/2501124-0-default/user/soldCommodities', {
-          headers: { satoken: this.user.token },
-        })
           .then((res) => {
             console.log(res);
             if (res.data.data == null) {
               seen = true;
             } else {
               this.articles = res.data.data;
-
             }
+          });
+      } else if (val == 3) {
+        axios
+          .get("http://47.115.209.249:8080/user/soldCommodities", {
+            headers: { satoken: this.user.token },
           })
+          .then((res) => {
+            console.log(res);
+            if (res.data.data == null) {
+              seen = true;
+            } else {
+              this.articles = res.data.data;
+            }
+          });
       }
-
-
-    }
-  }
+    },
+  },
 };
 </script>
 
@@ -338,6 +348,10 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-around;
+}
+
+.tool button {
+  margin-right: 1rem;
 }
 
 .tool select {

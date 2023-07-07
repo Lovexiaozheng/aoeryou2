@@ -1,6 +1,6 @@
 <template>
   <div class="box">
-    <p class="title">Container.is-dark</p>
+    <p class="title">用户收藏列表</p>
     <div class="layout_page" id="content-inner">
       <div class="aside_content" id="aside_content">
         <div class="card-widget card-info">
@@ -20,38 +20,31 @@
           </div>
         </div>
 
+        <!-- 工具栏，包括返回按钮和搜索框 -->
         <div class="tool">
           <button class="nes-btn" @click="returnUserCenter">
             返回用户中心
           </button>
           <div class="search bar" style="float: right; position: relative">
             <form>
-              <input
-                class=""
-                type="text"
-                v-model="searchString"
-                placeholder="在这输入您要搜索的商品名称..."
-              />
+              <input class="" type="text" v-model="searchString" placeholder="在这输入您要搜索的商品名称..." />
             </form>
           </div>
         </div>
 
         <ul>
-          <p
-            v-if="seen"
-            style="
+          <p v-if="seen" style="
               color: rgb(255, 0, 174);
               font-size: 30px;
               font-weight: bold;
               text-align: center;
-            "
-          >
+            ">
             {{ warning }}
           </p>
           <!--//判断搜索是否有数据后返回提示  -->
           <div class="col-md-9">
             <!-- 循环输出数据 -->
-            <div v-for="article in filteredArticles" :key="article">
+            <div v-for="(article, index) in filteredArticles" :key="index">
               <!--//循环输出数据  -->
               <hr />
               <div class="nes-container is-rounded">
@@ -59,14 +52,9 @@
                   <tr>
                     <td rowspan="2">
                       <div class="col-md-4">
-                        <a @click="lookItem(article.id)" class="angled-img"
-                          ><!--//跳转到详情页 -->
+                        <a @click="lookItem(article.id)" class="angled-img"><!--//跳转到详情页 -->
                           <div class="img">
-                            <img
-                              style="image-rendering: pixelated; size: 200px"
-                              v-bind:src="article.images"
-                              alt=""
-                            /><!--//图片 -->
+                            <img class="article-img" v-bind:src="article.images" alt="" /><!--//图片 -->
                           </div>
                         </a>
                       </div>
@@ -101,25 +89,15 @@
                       <li>
                         <h3>更新商家：{{ article.updateUser }}</h3>
                       </li>
-                      <div
-                        style="
+                      <div style="
                           background-color: #212529;
                           padding: 1rem 0;
                           width: 400px;
-                        "
-                      >
+                        ">
                         <label>
-                          <input
-                            type="checkbox"
-                            class="nes-checkbox is-dark"
-                            @click="deleteFavorite(article.id)"
-                            checked
-                          />
-                          <span style="font-size: 18.72px"
-                            >是否收藏<span class="nes-text is-error"
-                              >(取消勾选则取消收藏)</span
-                            ></span
-                          >
+                          <input type="checkbox" class="nes-checkbox is-dark" @click="deleteFavorite(article.id)"
+                            checked />
+                          <span style="font-size: 18.72px">是否收藏<span class="nes-text is-error">(取消勾选则取消收藏)</span></span>
                         </label>
                       </div>
                     </ul>
@@ -140,58 +118,31 @@
     </div>
   </div>
 </template>
-  
-  
-  <script>
+
+<script>
 import axios from "axios";
 
 export default {
-  name: "User",
   data() {
     return {
-      user: {},
       articles: [],
-      searchString: "", //搜索
-      warning: "没有任何收藏或者搜索不到相关收藏",
       seen: false,
-      ifsearch: false,
+      warning: "暂无数据",
+      searchString: "",
+      user: JSON.parse(localStorage.getItem("user")),
     };
   },
 
-  created: function () {
-    this.user = JSON.parse(localStorage.getItem("user"));
-    if (this.user == null) {
-      alert("您还未登录，为您跳转到登录处");
-      this.$router.push({ path: "/login" });
-    }
-    var list = JSON.parse("[]");
-    axios
-      .get("http://127.0.0.1:4523/m2/2501124-0-default/73722126", {
-        headers: { satoken: this.user.token },
-      })
-      .then((res) => {
-        console.log(res);
-
-        if (res.data.data == null) {
-          seen = true;
-        } else {
-          this.articles = res.data.data;
-          console.log(this.articles);
-        }
-      })
-      .catch((err) => {
-        console.log(err);
-      });
-  },
+  // 对收藏列表进行过滤搜索
   computed: {
-    // 计算数学，匹配搜索
-    filteredArticles: function () {
-      var articles_array = this.articles,
+    filteredArticles() {
+      let articles_array = this.articles,
         searchString = this.searchString;
+
       if (!searchString) {
-        this.seen = false; //默认没有搜索时的提示不可见
         return articles_array;
       }
+
       searchString = searchString.trim().toLowerCase();
 
       articles_array = articles_array.filter(function (item) {
@@ -199,116 +150,105 @@ export default {
           return item;
         }
       });
-      var len = articles_array.length;
-      if (len == 0) {
-        this.seen = true; //没有搜索到结果时的提示可见
+
+      // 搜索无结果时显示提示信息
+      if (articles_array.length === 0) {
+        this.seen = true;
       } else {
-        this.seen = false; //有搜索到结果时的提示不可见
+        this.seen = false;
       }
-      // 返回过来后的数组
+
       return articles_array;
     },
   },
+
   methods: {
-    //取消收藏
-    deleteFavorite(artcileid) {
-      var params = new URLSearchParams();
-      params.append("commodity", artcileid);
+    // 获取收藏列表数据
+    getArticles() {
       axios
-        .post("http://127.0.0.1:4523/m2/2501124-0-default/73722140", params, {
+        .get("http://47.115.209.249:8080/favorites", {
+          headers: { satoken: this.user.token },
+        })
+        .then((response) => {
+          this.articles = response.data.data;
+        });
+    },
+
+    // 返回用户中心
+    returnUserCenter() {
+      this.$router.push("/userCenter");
+    },
+
+    // 查看商品详情
+    lookItem(id) {
+      localStorage.setItem("Item", JSON.stringify(id));
+      this.$router.push({ path: "/workindex" });
+    },
+
+    // 删除收藏
+    deleteFavorite(id) {
+      this.user = JSON.parse(localStorage.getItem("user"));
+      var params = new URLSearchParams();
+      params.append("commodityId", id.toString());
+      axios
+        .delete("http://47.115.209.249:8080/favorites", {
           headers: {
             satoken: this.user.token,
             "Content-Type": "application/x-www-form-urlencoded",
           },
+          params,
         })
         .then((res) => {
-          console.log(res);
-          alert("取消收藏成功");
-          this.$router.go(0);
+          if (res.data.code == 200) alert("取消收藏成功");
+          else alert("取消收藏失败");
+
+          window.location.reload();
         })
         .catch((err) => {
           console.log(err);
         });
     }, //取消收藏
-    //返回用户中心
-    returnUserCenter() {
-      this.$router.push({ path: "/user" });
-    },
-    //跳转到详情页
+  },
 
-    lookItem(id) {
-      localStorage.setItem('Item', JSON.stringify(id))
-      this.$router.push({ path: "/workindex"})
-    },
+  // 生命周期钩子：在组件创建完成后获取数据
+  created() {
+    this.user = JSON.parse(localStorage.getItem("user"));
+    if (this.user == null) {
+      alert("您还未登录，为您跳转到登录处");
+      this.$router.push({ path: "/login" });
+    }
+    this.getArticles();
   },
 };
 </script>
-  
-  <style>
+
+<!-- 添加样式 -->
+<style scoped>
 .box {
-  margin-top: 1%;
-  width: 100%;
-  height: 100%;
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  padding: 20px;
-  box-sizing: border-box;
-  margin-bottom: 20px;
-}
-.avatar {
-  border-radius: 50%;
-
   margin: 0 auto;
-  margin-top: 2%;
-  margin-bottom: 20px;
+  max-width: 1200px;
 }
+
+.title {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
 .tool {
-  margin-top: 2%;
-  margin-bottom: 20px;
   display: flex;
-  align-items: center;
-  justify-content: space-around;
+  justify-content: space-between;
+  margin-bottom: 1rem;
 }
 
-/*搜索框*/
-
-.bar form {
-  height: 42px;
+.search {
+  position: relative;
 }
 
-.bar input {
-  width: 250px;
-  height: 50px;
-  border-radius: 42px;
-  border: 2px solid #181399;
-  color: rgb(255, 0, 174);
-  font-size: 15px;
-  font-weight: bold;
-  background-color: transparent;
-  transition: 0.3s linear;
-  float: right;
-}
-
-.bar input:focus {
-  width: 300px;
-}
-
-.bar input::-webkit-input-placeholder {
-  color: rgb(0, 255, 187);
-  font-size: 15px;
-  font-weight: bold;
-}
-
-.bar button {
-  background: none;
-  top: -2px;
-  right: 0;
-}
-
-.bar button:before {
-  content: "\f002";
-  font-family: FontAwesome;
-  color: #3b324e9d;
+.article-img {
+  width: 400px;
+  height: 400px;
+  object-fit: cover;
 }
 </style>

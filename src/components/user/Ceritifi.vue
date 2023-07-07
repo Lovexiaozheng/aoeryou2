@@ -1,38 +1,33 @@
 <template>
   <div class="nes-container with-title">
-    <p class="title" style="color:red" >实名认证</p>
-   <div id="inputs" class="item">
-    <div class="nes-field">
-  <label for="name_field">您的姓名：</label>
-  <input type="text" id="name_field" class="nes-input" placeholder="请输入您的姓名">
-</div>
+    <p class="title" style="color: red">实名认证</p>
+    <div id="inputs" class="item">
+      <div class="nes-field">
+        <label for="name_field">您的姓名：</label>
+        <input type="text" id="name_field" class="nes-input" placeholder="请输入您的姓名" />
+      </div>
 
-<div class="nes-field">
-  <label for="name_field">您的身份证：</label>
-  <input type="text" id="inline_field" class="nes-input is-success" placeholder="请输入您的身份证">
-</div>
-</div> <!----> <!---->
-<span class="nes-text is-error">请完成实名认证后才能使用本交易平台！请认真填写相关信息！！</span>
-<div class="login"><button type="button" class="nes-btn is-warning">提交认证</button>
+      <div class="nes-field">
+        <label for="name_field">您的身份证：</label>
+        <input type="text" id="inline_field" class="nes-input is-success" placeholder="请输入您的身份证" />
+      </div>
+    </div>
+    <!---->
+    <!---->
+    <span class="nes-text is-error">请完成实名认证后才能使用本交易平台！请认真填写相关信息！！</span>
+    <div class="login">
+      <button type="button" class="nes-btn is-warning">提交认证</button>
+    </div>
   </div>
-
-</div>
-
 </template>
 
 <style scoped>
-
-.login{
+.login {
   display: flex;
   justify-content: center;
   align-items: center;
   margin-top: 2rem;
-
 }
-
-
-
-
 
 .nes-container {
   margin: 0 auto;
@@ -50,12 +45,13 @@
   transition: all 0.3s ease;
 
   -webkit-backface-visibility: hidden;
-          backface-visibility: hidden;
-
+  backface-visibility: hidden;
 }
+
 .nes-container.with-title {
   padding-top: 3rem;
 }
+
 .nes-container.with-title::before {
   content: "";
   position: absolute;
@@ -69,6 +65,7 @@
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.176);
   z-index: -1;
 }
+
 .nes-container.with-title::after {
   content: "";
   position: absolute;
@@ -81,6 +78,7 @@
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.176);
   z-index: -1;
 }
+
 .nes-container.with-title .title {
   position: relative;
   z-index: 1;
@@ -94,12 +92,15 @@
   border-radius: 3px 3px 0 0;
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.176);
 }
+
 .nes-container .item {
   margin-bottom: 1rem;
 }
+
 .nes-container .item:last-child {
   margin-bottom: 0;
 }
+
 .nes-container .showcode {
   position: absolute;
   top: 0;
@@ -116,83 +117,105 @@
   cursor: pointer;
   transition: all 0.3s ease;
 }
+
 .nes-container .showcode:hover {
   background-color: #000;
 }
+
 .nes-container .showcode:focus {
   outline: none;
 }
+
 .nes-container .showcode:active {
   background-color: #000;
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.176);
   transform: translateY(3px);
 }
+
 .nes-container .showcode:disabled {
   background-color: #212529;
   box-shadow: none;
   cursor: not-allowed;
 }
+
 .nes-container .showcode:disabled:hover {
   background-color: #212529;
 }
+
 .nes-container .showcode:disabled:active {
   background-color: #212529;
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.176);
   transform: translateY(0);
 }
+
 .nes-container .showcode.is-disabled {
   background-color: #212529;
   box-shadow: none;
   cursor: not-allowed;
 }
+
 .nes-container .showcode.is-disabled:hover {
   background-color: #212529;
 }
+
 .nes-container .showcode.is-disabled:active {
   background-color: #212529;
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.176);
   transform: translateY(0);
 }
+
 .nes-container .showcode.is-primary {
   background-color: #212529;
 }
+
 .nes-container .showcode.is-primary:hover {
   background-color: #000;
 }
+
 .nes-container .showcode.is-primary:active {
   background-color: #000;
 }
+
 .nes-container .showcode.is-primary.is-disabled {
   background-color: #212529;
 }
+
 .nes-container .showcode.is-primary.is-disabled:hover {
   background-color: #212529;
 }
+
 .nes-container .showcode.is-primary.is-disabled:active {
   background-color: #212529;
 }
+
 .nes-container .showcode.is-success {
   background-color: #212529;
 }
+
 .nes-container .showcode.is-success:hover {
   background-color: #000;
 }
+
 .nes-container .showcode.is-success:active {
   background-color: #000;
 }
+
 .nes-container .showcode.is-success.is-disabled {
   background-color: #212529;
 }
+
 .nes-container .showcode.is-success.is-disabled:hover {
   background-color: #212529;
 }
+
 .nes-container .showcode.is-success.is-disabled:active {
   background-color: #212529;
 }
+
 .nes-container .showcode.is-warning {
   background-color: #212529;
 }
+
 .nes-container .showcode.is-warning:hover {
   background-color: #000;
-}
-</style>
+}</style>

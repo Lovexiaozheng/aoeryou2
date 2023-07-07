@@ -9,8 +9,8 @@
               <hr />
               <hr />
               <div class="nes-container is-rounded is-dark">
-                <img class="nes-avatar is-rounded is-large" style="image-rendering: pixelated"
-                  src="https://www.iculture.cc/icon/logo.png" alt="avatar" />
+                <img class="nes-avatar is-rounded is-large" style="image-rendering: pixelated" v-bind:src="user.avatar"
+                  alt="avatar" />
                 <div class="nes-text is-primary">{{ user.username }}</div>
                 <div class="author-info__description">
                   这个家伙很懒，什么都没写。
@@ -29,9 +29,15 @@
           <button class="nes-btn" onclick="document.getElementById('dialog-default').showModal();">
             修改信息
           </button>
-          <button type="button" class="nes-btn is-primary" @click="gotolist">商品列表</button>
-          <button type="button" class="nes-btn is-success" @click="gotoorder">订单列表</button>
-          <button type="button" class="nes-btn is-warning" @click="gotofavorites">收藏列表</button>
+          <button type="button" class="nes-btn is-primary" @click="gotolist">
+            商品列表
+          </button>
+          <button type="button" class="nes-btn is-success" @click="gotoorder">
+            订单列表
+          </button>
+          <button type="button" class="nes-btn is-warning" @click="gotofavorites">
+            收藏列表
+          </button>
           <button type="button" class="nes-btn is-error" @click="loginOut">
             退出登录
           </button>
@@ -106,7 +112,7 @@
                   <label for="inline_field">您的头像：</label>
                   <div>
                     <img class="nes-avatar is-rounded is-large" style="image-rendering: pixelated"
-                      src="https://www.iculture.cc/icon/logo.png" alt="avatar" />
+                      v-bind:src="user.avatar" alt="avatar" />
                   </div>
 
                   <label class="nes-btn is-warning" @change="picfile">
@@ -137,14 +143,13 @@
           <span>您的邮箱为：{{ user.email }}</span>
 
           <div class="webinfo-site-uv-name">
-            当前余额:{{ user.balance }}
+            当前余额:{{ balance }}
             <span class="nes-text is-primary" onclick="document.getElementById('dialog-chongzhi').showModal();"><u>
                 充值</u></span>
             <span class="nes-text is-success" onclick="document.getElementById('dialog-tixian').showModal();"><u>
                 提现</u></span>
           </div>
 
-          <div class="webinfo-site-name">总销售额:</div>
           <span>是否已完成实名认证：{{ user.certification }}</span>
         </div>
       </div>
@@ -155,20 +160,20 @@
           <h2>交易记录</h2>
           <div class="skillbox">
             <div class="skillbar">
-              <span>总共发布商品： （几件） </span>
-              <progress class="nes-progress is-primary" value="80" max="100"></progress>
+              <span>总共已完成订单：{{ Finished }}（单）</span>
+              <progress class="nes-progress is-primary" :value="Finished" max="100"></progress>
             </div>
             <div class="skillbar">
-              <span>总共已售商品： （几件） </span>
-              <progress class="nes-progress is-success" value="50" max="100"></progress>
+              <span>总共已售商品：{{ Agoodnum }}（个）</span>
+              <progress class="nes-progress is-success" :value="Agoodnum" max="100"></progress>
             </div>
             <div class="skillbar">
-              <span>正在审核的商品： （几个） </span>
-              <progress class="nes-progress is-warning" value="30" max="100"></progress>
+              <span>正在审核的商品：{{ Bgoodnum }}（个）</span>
+              <progress class="nes-progress is-warning" :value="Bgoodnum" max="100"></progress>
             </div>
             <div class="skillbar">
-              <span>被驳回的商品： （几个） </span>
-              <progress class="nes-progress is-error" value="10" max="100"></progress>
+              <span>被驳回的商品：{{ Cgoodnum }}（个）</span>
+              <progress class="nes-progress is-error" :value="Cgoodnum" max="100"></progress>
             </div>
           </div>
 
@@ -185,7 +190,6 @@
   </div>
 </template>
 
-
 <script>
 import axios from "axios";
 
@@ -193,17 +197,28 @@ export default {
   name: "User",
   data() {
     return {
-      user: {},
+      user: {
+        username: "",
+        email: "",
+        token: "",
+      }, //用户信息
+      isUserReady: false, //用户信息是否加载完毕
       oldtoken: "",
       newtoken: "",
       certification: "",
       avatar: "",
       ko: "",
       question: "",
-      status: 0,
+      status: 0,//充值标签选择状态
+      balance: 0, //余额
       thePrice: 10,
       confirm: "",
       crashout: "",
+      Agoodnum: 0, //已售商品数量
+      Bgoodnum: 0, //审核中商品数量
+      Cgoodnum: 0, //被驳回商品数量
+      Finished: 0, //已完成订单数量
+
       list: [
         { price: 10 },
         { price: 20 },
@@ -216,19 +231,20 @@ export default {
       ],
     };
   },
-  created: function () {
+  created() {
     this.user = JSON.parse(localStorage.getItem("user"));
     if (this.user == null) {
       alert("您还未登录，为您跳转到登录处");
       this.$router.push({ path: "/login" });
     }
-    axios
-      .get("http://127.0.0.1:4523/m2/2501124-0-default/73413005", {
+
+    axios //用户信息
+      .get("http://47.115.209.249:8080/user", {
         headers: { satoken: this.user.token },
       })
       .then((res) => {
-        console.log(res);
         this.user = res.data.data;
+        localStorage.setItem("userId", JSON.stringify(res.data.data.id));
         if (this.user.certification == true) {
           this.certification = "是";
         } else {
@@ -238,11 +254,78 @@ export default {
       .catch((err) => {
         console.log(err);
       });
+    axios //用户余额
+      .get("http://47.115.209.249:8080/account", {
+        headers: { satoken: this.user.token },
+      })
+      .then((res) => {
+        console.log(res);
+
+        if (res.data.code == 200) this.balance = res.data.data;
+        else this.balance = "获取失败";
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    axios //已售商品数量
+      .get("http://47.115.209.249:8080/user/soldCommodities", {
+        headers: { satoken: this.user.token },
+      })
+      .then((res) => {
+        console.log(res);
+        this.Agoodnum = res.data.data.length;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    axios //审核中商品数量
+      .get("http://47.115.209.249:8080/user/auditingCommodities", {
+        headers: { satoken: this.user.token },
+      })
+      .then((res) => {
+        console.log(res);
+        this.Bgoodnum = res.data.data.length;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    axios //被驳回商品数量
+      .get("http://47.115.209.249:8080/user/failedCommodities", {
+        headers: { satoken: this.user.token },
+      })
+      .then((res) => {
+        console.log(res);
+        this.Cgoodnum = res.data.data.length;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    axios //已完成订单数量
+      .get("http://47.115.209.249:8080/orders/completedList", {
+        headers: { satoken: this.user.token },
+      })
+      .then((res) => {
+        console.log(res);
+        this.Finished = res.data.data.length;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  },
+  watch: {
+    user(newValue) {
+      if (newValue !== null) {
+        this.isUserReady = true;
+      } else {
+        this.user = JSON.parse(localStorage.getItem("user"));
+      }
+    },
   },
   methods: {
-
     // 提现
     withdraw() {
+      this.user = JSON.parse(localStorage.getItem("user"));
       if (this.user.balance == 0) {
         alert("您的余额为0，无法提现");
       } else if (this.user.balance < this.crashout) {
@@ -251,58 +334,67 @@ export default {
         alert("请输入提现金额");
       } else {
         var params = new URLSearchParams();
-        params.append("balance", this.crashout);
+        params.append("money", this.crashout);
         axios
-          .post("http://127.0.0.1:4523/m2/2501124-0-default/77179271", params, {
-            headers: { satoken: this.user.token },
+          .post("http://47.115.209.249:8080/account/withdraw", params, {
+            headers: {
+              satoken: this.user.token,
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
           })
           .then((res) => {
             console.log(res);
-            if (res.status == 200)
+            if (res.data.code == 200) {
               alert(
                 "名称：" +
                 this.user.username +
-                "\n" +
-                "邮箱：" +
-                this.user.email +
                 "\n" +
                 "提现金额：" +
                 this.crashout +
                 "\n" +
                 "提现成功"
               );
-            else alert("提现失败");
+              //刷新页面
+              window.location.reload();
+            } else {
+              alert(res.data.msg);
+              //刷新页面
+            }
           });
       }
     },
     // 充值
     recharge() {
+      this.user = JSON.parse(localStorage.getItem("user"));
+
       // console.log(this.confirm = parseInt(this.thePrice))
       if (this.user.username == "" || this.user.email == "") {
         alert("请先完善个人信息");
       } else {
         this.confirm = parseInt(this.thePrice);
-        var params = new URLSearchParams();
-        params.append("balance", this.confirm);
+
         axios
-          .post("http://127.0.0.1:4523/m2/2501124-0-default/77144428", params, {
-            headers: { satoken: this.user.token },
-          })
+          .post(
+            "http://47.115.209.249:8080/account/recharge",
+            { balance: this.confirm },
+            { headers: { satoken: this.user.token } }
+          )
           .then((res) => {
             console.log(res);
-            if (res.status == 200)
+            if (res.data.code == 200) {
               alert(
                 "名称：" +
                 this.user.username +
-                "\n" +
-                "邮箱：" +
-                this.user.email +
                 "\n" +
                 "充值的金额为：" +
                 this.confirm +
                 "元"
               );
-            else alert("充值失败");
+              window.location.reload(); //刷新页面
+            } else {
+              alert("充值失败");
+              window.location.reload(); //刷新页面
+            }
           });
       }
     },
@@ -325,27 +417,41 @@ export default {
       console.log("退出登录");
       alert("您已退出登录，为您跳转到登录处");
       this.$router.push({ path: "/login" });
+      window.location.reload(); //刷新页面
     },
     //头像修改
     picfile(e) {
       // 上传照片
-      let self = this;
+
       this.avatar = e.target.files[0];
       /* eslint-disable no-undef */
       alert("上传成功");
-      console.log(this.avatar);
     }, //信息修改
     modify() {
-      if (this.newtoken == "") {
+      this.user = JSON.parse(localStorage.getItem("user"));
+      if (this.avatar != null) {
+        let param = new FormData(); // 创建form对象
+        param.append("avatar", this.avatar);
+
         axios
-          .put(
-            "http://127.0.0.1:4523/m2/2501124-0-default/73413614",
-            this.user.username,
-            { headers: { satoken: this.user.token } }
-          )
+          .put("http://47.115.209.249:8080/user/avatar", param, {
+            headers: { satoken: this.user.token },
+          })
           .then((res) => {
             alert("修改成功");
             this.$router.push({ path: "/user" });
+          })
+          .catch((err) => {
+            console.log(err);
+          });
+      }
+      if (this.newtoken == "") {
+        axios
+          .put("http://47.115.209.249:8080/user/username", this.user.username, {
+            headers: { satoken: this.user.token },
+          })
+          .then((res) => {
+            alert("修改成功");
           })
           .catch((err) => {
             console.log(err);
@@ -357,11 +463,9 @@ export default {
           params.append("oldPassword", this.oldtoken);
           params.append("newPassword", this.newtoken);
           axios
-            .put(
-              "http://127.0.0.1:4523/m2/2501124-0-default/73414390",
-              params,
-              { headers: { satoken: this.user.token } }
-            )
+            .put("http://47.115.209.249:8080/user/password", params, {
+              headers: { satoken: this.user.token },
+            })
             .then((res) => {
               alert("修改成功");
               this.$router.push({ path: "/user" });
@@ -373,23 +477,7 @@ export default {
           alert("原密码错误!请重新检查");
         }
       }
-      if (this.avatar != "") {
-        let param = new FormData(); // 创建form对象
-        params.append("avatar", this.avatar);
-        console.log(param.get("avatar")); // FormData私有类对象，访问不到，可以通过get判断值是否传进去
-        axios
-          .put("http://127.0.0.1:4523/m2/2501124-0-default/73413417", params, {
-            headers: { satoken: this.user.token },
-          })
-          .then((res) => {
-            alert("修改成功");
-            this.$router.push({ path: "/user" });
-          })
-          .catch((err) => {
-            console.log(err);
-          });
-      }
-    },//跳转到收藏夹
+    }, //跳转到收藏夹
     gotofavorites() {
       this.$router.push({ path: "/favorites" });
     },
@@ -408,7 +496,6 @@ export default {
     question: function (newQuestion, oldQuestion) {
       //如果第一位数为0时
       if (this.question[0] == "0") {
-        console.log(this.question[0]);
         this.question = "";
         this.thePrice = 0;
       }
@@ -416,8 +503,9 @@ export default {
       if (this.question == "") {
         this.thePrice = 0;
       } else {
-        this.thePrice = this.question;
         this.question = this.question.replace(/\D/g, "");
+        this.thePrice = this.question;
+       
       }
     },
   },
@@ -426,124 +514,131 @@ export default {
 
 <style>
 .choice {
-  width: 100%;
-  margin-top: 1rem;
-  margin-bottom: 1rem;
+  width: 100%; /* 将元素的宽度设置为 100% */
+  margin-top: 1rem; /* 将元素的顶部边距设置为 1rem */
+  margin-bottom: 1rem; /* 将元素的底部边距设置为 1rem */
 }
 
+/* 多选选项内文本的样式 */
 .choice p {
-  font-size: 1.1rem;
-  margin-left: 2%;
+  font-size: 1.1rem; /* 将文本的字号设置为 1.1rem */
+  margin-left: 2%; /* 将文本的左边距设置为 2% */
 }
 
+/* 充值选项列表的样式 */
 .recharge_hurg ul {
-  flex-direction: row;
-  width: 100%;
-  flex-wrap: wrap;
-  display: flex;
-  flex-wrap: wrap;
-  
-  justify-content: center;
+  flex-direction: row; /* 将 flex 容器的方向设置为水平方向 */
+  width: 100%; /* 将元素的宽度设置为 100% */
+  flex-wrap: wrap; /* 允许 flex 项目换行 */
+  display: flex; /* 将元素的 display 属性设置为 flex */
+  flex-wrap: wrap; /* 允许 flex 项目换行 */
+  justify-content: center; /* 在水平方向上将 flex 项目居中 */
 }
 
+/* 选中的充值选项的样式 */
 .bechoice {
-  background: green !important;
-  color: white !important;
+  background: green !important; /* 将元素的背景颜色设置为绿色 */
+  color: white !important; /* 将元素的文本颜色设置为白色 */
 }
 
+/* 每个充值选项的样式 */
 .recharge_hurg ul li {
-  list-style-type: none;
-  border: 2px solid green;
- 
-  width: 29.5%;
-  margin-right: 2%;
-  border-radius: 0.5rem;
-  height: 2.5rem;
-  text-align: center;
-  line-height: 2.5rem;
-  margin-bottom: 1rem;
-  border: 2px green solid;
-  color: green;
+  list-style-type: none; /* 去掉列表项的前缀符号 */
+  border: 2px solid green; /* 将元素的边框设置为 2px 的绿色实线 */
+  width: 29.5%; /* 将元素的宽度设置为 29.5% */
+  margin-right: 2%; /* 将元素的右边距设置为 2% */
+  border-radius: 0.5rem; /* 将元素的边框圆角设置为 0.5rem */
+  height: 2.5rem; /* 将元素的高度设置为 2.5rem */
+  text-align: center; /* 将元素内的文本居中 */
+  line-height: 2.5rem; /* 将文本的行高设置为 2.5rem */
+  margin-bottom: 1rem; /* 将元素的底边距设置为 1rem */
+  border: 2px green solid; /* 将元素的边框设置为 2px 的绿色实线 */
+  color: green; /* 将元素内的文本颜色设置为绿色 */
 }
 
+/* 每个第三个充值选项的样式 */
 .recharge_hurg ul li:nth-child(3n) {
-  margin-right: 0 !important;
+  margin-right: 0 !important; /* 将每个第三个充值选项的右边距设置为 0 */
 }
 
+/* 充值价格的样式 */
 .recharge_hurg_price {
-  width: 200px; /* 设置一个固定宽度 */
-  text-align: center;
-  margin: 1.25rem 0;
+  width: 200px; /* 将元素的宽度设置为 200px */
+  text-align: center; /* 将元素内的文本居中 */
+  margin: 1.25rem 0; /* 将元素的上下边距设置为 1.25rem */
 }
 
+/* 充值价格文本的样式 */
 .recharge_hurg_price span {
-  color: green;
-  font-weight: 600;
-  font-size: 23px;
+  color: green; /* 将元素内的文本颜色设置为绿色 */
+  font-weight: 600; /* 将文本的字重设置为 600 */
+  font-size: 23px; /* 将文本的字号设置为 23px */
 }
 
+/* 充值按钮的样式 */
 .recharge_btn {
-  width: 96%;
-  background: green;
-  color: white;
-  height: 2.5rem;
-  border-radius: 0.5rem;
-  text-align: center;
-  line-height: 2.5rem;
-  font-size: 1.25rem;
+  width: 96%; /* 将元素的宽度设置为 96% */
+  background: green; /* 将元素的背景颜色设置为绿色 */
+  color: white; /* 将元素的文本颜色设置为白色 */
+  height: 2.5rem; /* 将元素的高度设置为 2.5rem */
+  border-radius: 0.5rem; /* 将元素的边框圆角设置为 0.5rem */
+  text-align: center; /* 将元素内的文本居中 */
+  line-height: 2.5rem; /* 将文本的行高设置为 2.5rem */
+  font-size: 1.25rem; /* 将文本的字号设置为 1.25rem */
 }
 
+/* 充值选项列表中输入框的样式 */
 .recharge_hurg ul input {
-  list-style-type: none;
-  width: 100%;
-  margin-right: 2%;
-  border-radius: 7px;
-  height: 35px;
-  text-align: center;
-  line-height: 40px;
-  border-style: none;
-  text-shadow: none;
-
-  box-shadow: none;
-  outline: none;
-  color: green;
-  font-size: 1.1rem;
+  list-style-type: none; /* 去掉列表项的前缀符号 */
+  width: 100%; /* 将元素的宽度设置为 100% */
+  margin-right: 2%; /* 将元素的右边距设置为 2% */
+  border-radius: 7px; /* 将元素的边框圆角设置为 7px */
+  height: 35px; /* 将元素的高度设置为 35px */
+  text-align: center; /* 将元素内的文本居中 */
+  line-height: 40px; /* 将文本的行高设置为 40px */
+  border-style: none; /* 将元素的边框样式设置为无 */
+  text-shadow: none; /* 将元素内的文本阴影设置为无 */
+  box-shadow: none; /* 将元素的盒子阴影设置为无 */
+  outline: none; /* 去掉选中元素时的边框 */
+  color: green; /* 将元素内的文本颜色设置为绿色 */
+  font-size: 1.1rem; /* 将文本的字号设置为 1.1rem */
 }
 
+/* 充值选项列表中输入框的占位符样式 */
 ::-webkit-input-placeholder {
   /* WebKit, Blink, Edge */
-  color: #aaa;
+  color: #aaa; /* 将占位符的颜色设置为灰色 */
 }
 
 :-moz-placeholder {
   /* Mozilla Firefox 4 to 18 */
-  color: #aaa;
-  opacity: 1;
+  color: #aaa; /* 将占位符的颜色设置为灰色 */
+  opacity: 1; /* 将占位符的透明度设置为 1 */
 }
 
 ::-moz-placeholder {
   /* Mozilla Firefox 19+ */
-  color: #aaa;
-  opacity: 1;
+  color: #aaa; /* 将占位符的颜色设置为灰色 */
+  opacity: 1; /* 将占位符的透明度设置为 1 */
 }
 
 :-ms-input-placeholder {
   /* Internet Explorer 10-11 */
-  color: #aaa;
+  color: #aaa; /* 将占位符的颜色设置为灰色 */
 }
 
+/* 盒子的样式 */
 .box {
-  margin-top: 1%;
-  width: 100%;
-  height: 100%;
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  padding: 20px;
-  box-sizing: border-box;
-  margin-bottom: 20px;
+  margin-top: 1%; /* 将元素的上边距设置为 1% */
+  width: 100%; /* 将元素的宽度设置为 100% */
+  height: 100%; /* 将元素的高度设置为 100% */
+  background: #fff; /* 将元素的背景颜色设置为白色 */
+  border-radius: 10px; /* 将元素的边框圆角设置为 10px */
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* 将元素的盒子阴影设置为 0 0 10px 的黑色透明度为 0.1 的阴影 */
+  padding: 20px; /* 将元素的内边距设置为 20px */
+  box-sizing: border-box; /* 将元素的盒模型设置为 border-box */
+  margin-bottom: 20px; /* 将元素的下边距设置为 20px */
 }
-
 .avatar {
   border-radius: 50%;
 
@@ -558,5 +653,53 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-around;
+}
+
+.card-widget.card-info {
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.avatar img {
+  width: 100px;
+  border-radius: 50%;
+}
+
+.social-icon:hover {
+  color: #00a1ff;
+}
+
+.nes-input {
+  border-radius: 5px;
+  padding: 0 10px;
+}
+
+.nes-dialog {
+  width: 600px;
+  border-radius: 10px;
+}
+
+.nes-dialog h1 {
+  text-align: center;
+}
+
+.nes-btn {
+  margin: 0 5px;
+}
+
+.nes-btn.is-primary {
+  background: #00a1ff;
+}
+
+.nes-btn.is-success {
+  background: #00e400;
+}
+
+.nes-btn.is-warning {
+  background: #f7d518;
+}
+
+.nes-btn.is-error {
+  background: #ff004d;
 }
 </style>

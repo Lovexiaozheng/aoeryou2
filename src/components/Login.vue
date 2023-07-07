@@ -4,17 +4,24 @@
     <div id="inputs" class="item">
       <div class="nes-field">
         <label for="name_field">您的账号：</label>
-        <input type="text" id="login_account" class="nes-input" v-model="username" placeholder="请输入您的账号">
+        <input type="text" id="login_account" class="nes-input" v-model="username" placeholder="请输入您的账号" />
       </div>
 
       <div class="nes-field">
         <label for="inline_field">您的密码：</label>
-        <input type="password" id="login_pwd" class="nes-input is-success" v-model="password" placeholder="请输入您的密码">
+        <input type="password" id="login_pwd" class="nes-input is-success" v-model="password" placeholder="请输入您的密码" />
       </div>
-    </div> <!----> <!---->
+    </div>
+    <!---->
+    <!---->
     <span v-text="loginMsg" style="color: red"></span>
-    <div class="login"><button type="button" class="nes-btn is-primary" @click="tores">注册账号</button>
-      <button type="button" class="nes-btn is-success" @click="login">登录账号</button>
+    <div class="login">
+      <button type="button" class="nes-btn is-primary" @click="tores">
+        注册账号
+      </button>
+      <button type="button" class="nes-btn is-success" @click="login">
+        登录账号
+      </button>
     </div>
   </section>
 </template>
@@ -23,21 +30,20 @@
 import axios from "axios";
 
 export default {
-  name: 'Login',
+  name: "Login",
   data() {
     return {
       user: {},
-      username: '',
-      password: '',
-      loginMsg: ""
-    }
+      username: "",
+      password: "",
+      loginMsg: "",
+    };
   },
   created() {
-    this.user = JSON.parse(localStorage.getItem('user'));
+    this.user = JSON.parse(localStorage.getItem("user"));
     if (this.user != null) {
       this.$router.push({
         path: "/user",
-
       });
     }
   },
@@ -47,46 +53,50 @@ export default {
 
       if (this.username.length == 0) {
         _this.loginMsg = "用户名不能为空！";
-
       } else if (this.password.length == 0) {
         _this.loginMsg = "密码不能为空！";
       } else {
-        var params = new URLSearchParams();
-        params.append('username', this.username);
-        params.append('password', this.password);
-        axios.post('http://127.0.0.1:4523/m1/2501124-0-default/user/login',
-          params,
-          {
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-          }).then(res => {
-            console.log(res)
-            if (res.data.code != 200) {
+        axios
+          .post(
+            "http://47.115.209.249:8080/user/login",
+            {
+              username: this.username,
+              password: this.password,
+            },
+            {
+              headers: {
+                "Content-Type": "application/json",
+              },
+            }
+          )
+          .then((res) => {
+          
+            if (res.data.code == 200) {
               let user = res.data.data;
               _this.loginMsg = "登录成功！";
-              localStorage.setItem('user', JSON.stringify(user));
-              alert("登录成功！")
+              localStorage.setItem("user", JSON.stringify(user));
+              alert("登录成功！");
+              window.location.reload();
               this.$router.push({
                 path: "/user",
                 query: res.data.data,
               });
-              console.log(res)
-            }
-            else {
+       
+            } else {
               _this.loginMsg = "登录失败！请检查账号密码是否输入错误！";
             }
-            console.log(res)
-          })
+         
+          });
       }
-
     },
     tores() {
       this.$router.push({
         path: "/register",
-      });//http://
+      }); //http://
     },
     //:8080
-  }
-}
+  },
+};
 </script>
 
 <style scoped>
@@ -95,12 +105,7 @@ export default {
   justify-content: center;
   align-items: center;
   margin-top: 2rem;
-
 }
-
-
-
-
 
 .nes-container {
   margin: 0 auto;
@@ -119,7 +124,6 @@ export default {
 
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
-
 }
 
 .nes-container.with-title {
@@ -292,4 +296,5 @@ export default {
 
 .nes-container .showcode.is-warning:hover {
   background-color: #000;
-}</style>
+}
+</style>

@@ -21,16 +21,16 @@
         </div>
 
         <div class="tool">
-
-
-          <div class="nes-select is-warning" style="margin-left: auto;">
+          <div class="nes-select is-warning" style="margin-left: auto">
             <select required id="warning_select" v-model="chosen">
               <option value="" disabled selected hidden>请选择订单类型</option>
               <option value="0">未支付订单</option>
               <option value="1">已取消订单</option>
               <option value="2">已支付订单</option>
               <option value="3">已完成订单</option>
+              <option value="6">已收货订单</option>
               <option value="4">买家付款订单</option>
+              <option value="5">买家申请退货</option>
             </select>
           </div>
         </div>
@@ -55,10 +55,14 @@
                   <tr>
                     <td rowspan="2">
                       <div class="col-md-4">
-                        <a @click="lookItem(article.id)" class="angled-img"><!--//跳转到详情页 -->
-                          <div >
-                            <img style="image-rendering: pixelated; size: 200px"
-                              v-bind:src=imageArray[index] alt=imageArray[index]  />
+                        <a @click="lookItem(article.commodityId)" class="angled-img"><!--//跳转到详情页 -->
+                          <div>
+                            <img style="image-rendering: pixelated; size: 200px" v-bind:src="imageArray[index]"
+                              alt="imageArray[index]" :style="{
+                                width: '400px',
+                                height: '400px',
+                                objectFit: 'cover',
+                              }" /><!--//图片 -->
                           </div>
                         </a>
                       </div>
@@ -85,7 +89,7 @@
                         <h3>下单金额：{{ article.amount }} 元</h3>
                       </li>
                       <div>
-                        <h3>图片地址：{{imageArray[index]}}</h3>
+                        <h3>图片地址：{{ imageArray[index] }}</h3>
                       </div>
                       <div v-if="chosen == 0">
                         <button type="button" class="nes-btn is-success" @click="PayItem(article.id)">
@@ -120,11 +124,20 @@
                           刷新页面
                         </button>
                       </div>
+                      <div v-if="chosen == 6">
+                        <button type="button" class="nes-btn is-warning" @click="BackItem(article.id)">
+                          申请退货
+                        </button>
+                        <button type="button" class="nes-btn" @click="refreshPage()">
+                          刷新页面
+                        </button>
+                      </div>
                       <div v-if="chosen == 4">
                         <button type="button" class="nes-btn is-primary"
                           onclick="document.getElementById('dialog-fahuo').showModal();">
                           点此发货
                         </button>
+
                         <dialog class="nes-dialog" id="dialog-fahuo">
                           <form method="dialog">
                             <h1 style="text-align: center">卖家发货</h1>
@@ -142,8 +155,6 @@
                                 placeholder="备注（游戏名、游戏区服等）" />
                             </div>
 
-
-
                             <menu class="dialog-menu">
                               <button class="nes-btn">返回</button>
                               <button class="nes-btn is-primary" @click="finishOrder(article.id)">
@@ -155,6 +166,40 @@
                         <button type="button" class="nes-btn" @click="refreshPage()">
                           刷新页面
                         </button>
+                      </div>
+                      <div v-if="chosen == 5">
+                        <button type="button" class="nes-btn is-primary"
+                          onclick="document.getElementById('dialog-tuihuo').showModal();">
+                          处理退货
+                        </button>
+                        <dialog class="nes-dialog" id="dialog-tuihuo">
+                          <form method="dialog">
+                            <h1 style="text-align: center">退货处理</h1>
+                            <div class="nes-field">
+                              <label for="order_id_field">订单ID：</label>
+                              {{ article.id }} 
+                            </div>
+                            <div class="nes-field">
+                              <label for="damage_level_field">受损程度：</label>
+                              <select name="damage_level" id="damage_level_field" class="nes-select"
+                                v-model="damageLevel">
+                                <option disabled value="">
+                                  请选择受损程度
+                                </option>
+                                <option value="100">拒绝退货</option>
+                                <option value="101">轻微受损</option>
+                                <option value="102">严重受损</option>
+                                <option value="103">无受损</option>
+                              </select>
+                            </div>
+                            <menu class="dialog-menu">
+                              <button class="nes-btn">返回</button>
+                              <button class="nes-btn is-primary" @click="processReturn(article.id,damageLevel)">
+                                确定处理
+                              </button>
+                            </menu>
+                          </form>
+                        </dialog>
                       </div>
                     </ul>
                   </td>
@@ -174,8 +219,7 @@
     </div>
   </div>
 </template>
-  
-  
+
 <script>
 import axios from "axios";
 
@@ -183,12 +227,10 @@ export default {
   name: "User",
   data() {
     return {
-      url:"https://dummyimage.com/400x400",
-      chosen: "",//选择的订单类型
+      url: "https://dummyimage.com/400x400",
+      chosen: "", //选择的订单类型
       user: {},
-      articles: [
-
-      ],
+      articles: [],
       searchString: "", //搜索
       warning: "该订单类型无数据,请重新选择订单类型",
       seen: true,
@@ -196,8 +238,7 @@ export default {
       gameAccount: "",
       gamePassword: "",
       remark: "",
-      imageArray : [],
-
+      imageArray: [],
     };
   },
 
@@ -207,11 +248,8 @@ export default {
       alert("您还未登录，为您跳转到登录处");
       this.$router.push({ path: "/login" });
     }
-
-
   },
   methods: {
-
     //返回用户中心
     returnUserCenter() {
       this.$router.push({ path: "/user" });
@@ -219,69 +257,82 @@ export default {
     //跳转到详情页
 
     lookItem(id) {
-      this.$router.push({ path: "/item/" + id });
+      localStorage.setItem("Item", JSON.stringify(id));
+      this.$router.push({ path: "/workindex" });
     },
-  getimage(id) {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const params = new URLSearchParams();
-      params.append("id", id);
-      const response = await fetch(`http://127.0.0.1:4523/m2/2501124-0-default/73411096?id=${id}`, {
-        headers: {
-          satoken: this.user.token,
-        },
-      });
-     
-        const data = await response.json();
-       
-        resolve(data.data.images);
-     
-    }
-    catch (err) {
-      reject(err);
-    }
-  });
-},
-async loadImage(id) {
-  try {
-    const images = await this.getimage(id);
-    
-      this.imageArray.push(images);
-      console.log(this.imageArray);
-  } catch (error) {
-    console.error(error);
-  }
-},
-     /* 
-     
-    /* axios
-        .get("http://127.0.0.1:4523/m2/2501124-0-default/73411096", params, {
-          headers: { satoken: this.user.token },
-        })
-        .then((res) => {
-          console.log(res.data.data.images);
-          if (res.data.data.images == null) {
-          
-            return "";
-          } else {  
-            var url = res.data.data.images;
-            var img= require(url);
-            console.log("meww "+img);
-            return img;
+    //获取订单商品的图片
+    getimage(id) {
+      return new Promise(async (resolve, reject) => {
+        try {
+          const params = new URLSearchParams();
+          params.append("id", id);
+          const response = await fetch(
+            `http://47.115.209.249:8080/commodity/id?id=${id}`,
+            {
+              headers: {
+                satoken: this.user.token,
+              },
+            }
+          );
 
-          }
+          const data = await response.json();
 
+          resolve(data.data.images);
+        } catch (err) {
+          reject(err);
         }
-        );*/
-   
+      });
+    },
+    //导入订单商品的图片
+    async loadImage(id) {
+      try {
+        const images = await this.getimage(id);
+
+        this.imageArray.push(images);
+        console.log(this.imageArray);
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    /* 
+    
+   /* axios
+       .get("http://127.0.0.1:4523/m2/2501124-0-default/73411096", params, {
+         headers: { satoken: this.user.token },
+       })
+       .then((res) => {
+         console.log(res.data.data.images);
+         if (res.data.data.images == null) {
+         
+           return "";
+         } else {  
+           var url = res.data.data.images;
+           var img= require(url);
+           console.log("meww "+img);
+           return img;
+
+         }
+
+       }
+       );*/
+
     //支付订单
     PayItem(id) {
       var params = new URLSearchParams();
       params.append("orderId", id);
       axios
-        .post("http://127.0.0.1:4523/m1/2501124-0-default/orders/payBill", params, {
-          headers: { satoken: this.user.token },
-        })
+        .post(
+          "http://47.115.209.249:8080/orders/payBill",
+          {
+            orderId: id,
+          },
+          {
+            headers: {
+              satoken: this.user.token,
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+          }
+        )
         .then((res) => {
           console.log(res);
           if (res.data.code == 200) {
@@ -292,15 +343,17 @@ async loadImage(id) {
           }
         });
       //
-
     },
     //取消订单
     DeleteItem(id) {
       var params = new URLSearchParams();
       params.append("id", id);
       axios
-        .post("http://127.0.0.1:4523/m1/2501124-0-default/orders/cancel", params, {
-          headers: { satoken: this.user.token },
+        .post("http://47.115.209.249:8080/orders/cancel", params, {
+          headers: {
+            satoken: this.user.token,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
         })
         .then((res) => {
           console.log(res);
@@ -317,8 +370,11 @@ async loadImage(id) {
       var params = new URLSearchParams();
       params.append("orderId", id);
       axios
-        .post("http://127.0.0.1:4523/m1/2501124-0-default/orders/confirmOrder", params, {
-          headers: { satoken: this.user.token },
+        .post("http://47.115.209.249:8080/orders/confirmOrder", params, {
+          headers: {
+            satoken: this.user.token,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
         })
         .then((res) => {
           console.log(res);
@@ -335,13 +391,16 @@ async loadImage(id) {
       var params = new URLSearchParams();
       params.append("orderId", id);
       axios
-        .post("http://127.0.0.1:4523/m1/2501124-0-default/orders/getBack", params, {
-          headers: { satoken: this.user.token },
+        .post("http://47.115.209.249:8080/orders/back", params, {
+          headers: {
+            satoken: this.user.token,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
         })
         .then((res) => {
           console.log(res);
           if (res.data.code == 200) {
-            alert("申请成功");
+            alert(res.data.msg);
             this.refreshPage();
           } else {
             alert("申请失败");
@@ -350,14 +409,17 @@ async loadImage(id) {
     },
     //确认发货
     finishOrder(id) {
-      var params = new URLSearchParams();
+      var params = new FormData();
       params.append("orderId", id);
       params.append("gameAccount", this.gameAccount);
       params.append("gamePassword", this.gamePassword);
       params.append("remark", this.remark);
       axios
-        .post("http://127.0.0.1:4523/m1/2501124-0-default/orders/finishOrder", params, {
-          headers: { satoken: this.user.token },
+        .post("http://47.115.209.249:8080/orders/finishOrder", params, {
+          headers: {
+            satoken: this.user.token,
+            "Content-Type": "multipart/form-data",
+          },
         })
         .then((res) => {
           console.log(res);
@@ -369,7 +431,28 @@ async loadImage(id) {
           }
         });
     },
-
+    //处理退货
+    processReturn(id,level) {
+      var params = new FormData();
+      params.append("orderId", id);
+      params.append("extent", level);
+      axios
+        .post("http://47.115.209.249:8080/orders/processBack", params, {
+          headers: {
+            satoken: this.user.token,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+        })
+        .then((res) => {
+          console.log(res);
+          if (res.data.code == 200) {
+            alert(res.data.msg);
+            this.refreshPage();
+          } else {
+            alert(res.data.msg);
+          }
+        });
+    },
     //刷新页面
     refreshPage() {
       window.location.reload();
@@ -379,48 +462,30 @@ async loadImage(id) {
   watch: {
     chosen(val, oldval) {
       if (val == 0) {
-        axios.get('http://127.0.0.1:4523/m2/2501124-0-default/74153153', {
-          headers: { satoken: this.user.token },
-        })
-          .then((res) => {
-            console.log(res);
-
-            if (res.data.data == null) {
-              this.seen = true;
-            } else {
-              this.seen = false;
-              this.articles = res.data.data;
-            this.imageArray = [];
-              
-         for (let i = 0; i < this.articles.length; i++) {
-                this.loadImage(this.articles[i].commodityId);
-              }
-
-            }
+        //待付款
+        axios
+          .get("http://47.115.209.249:8080/orders/unpaidList", {
+            headers: { satoken: this.user.token },
           })
-      }
-      else if (val == 1) {
-        axios.get('http://127.0.0.1:4523/m2/2501124-0-default/74153684', {
-          headers: { satoken: this.user.token },
-        })
           .then((res) => {
             console.log(res);
+
             if (res.data.data == null) {
               this.seen = true;
             } else {
               this.seen = false;
               this.articles = res.data.data;
               this.imageArray = [];
-              
+
               for (let i = 0; i < this.articles.length; i++) {
-                     this.loadImage(this.articles[i].commodityId);
-                   }
+                this.loadImage(this.articles[i].commodityId);
+              }
             }
-          })
-      }
-      else if (val == 2) {
-        axios.get('http://127.0.0.1:4523/m2/2501124-0-default/74153766'
-          , {
+          });
+      } else if (val == 1) {
+        //已取消
+        axios
+          .get("http://47.115.209.249:8080/orders/canceledList", {
             headers: { satoken: this.user.token },
           })
           .then((res) => {
@@ -431,17 +496,18 @@ async loadImage(id) {
               this.seen = false;
               this.articles = res.data.data;
               this.imageArray = [];
-              
+
               for (let i = 0; i < this.articles.length; i++) {
-                     this.loadImage(this.articles[i].commodityId);
-                   }
+                this.loadImage(this.articles[i].commodityId);
+              }
             }
+          });
+      } else if (val == 2) {
+        //yi支付
+        axios
+          .get("http://47.115.209.249:8080/orders/paidList", {
+            headers: { satoken: this.user.token },
           })
-      }
-      else if (val == 3) {
-        axios.get('http://127.0.0.1:4523/m2/2501124-0-default/74153774', {
-          headers: { satoken: this.user.token },
-        })
           .then((res) => {
             console.log(res);
             if (res.data.data == null) {
@@ -450,17 +516,17 @@ async loadImage(id) {
               this.seen = false;
               this.articles = res.data.data;
               this.imageArray = [];
-              
+
               for (let i = 0; i < this.articles.length; i++) {
-                     this.loadImage(this.articles[i].commodityId);
-                   }
+                this.loadImage(this.articles[i].commodityId);
+              }
             }
+          });
+      } else if (val == 3) {
+        axios
+          .get("http://47.115.209.249:8080/orders/completedList", {
+            headers: { satoken: this.user.token },
           })
-      }
-      else if (val == 4) {
-        axios.get('http://127.0.0.1:4523/m1/2501124-0-default/orders/paidOrder', {
-          headers: { satoken: this.user.token },
-        })
           .then((res) => {
             console.log(res);
             if (res.data.data == null) {
@@ -469,22 +535,80 @@ async loadImage(id) {
               this.seen = false;
               this.articles = res.data.data;
               this.imageArray = [];
-              
+
               for (let i = 0; i < this.articles.length; i++) {
-                     this.loadImage(this.articles[i].commodityId);
-                   }
+                this.loadImage(this.articles[i].commodityId);
+              }
             }
+          });
+      } else if (val == 4) {
+        //买家付款订单
+        axios
+          .get("http://47.115.209.249:8080/orders/paidOrder", {
+            headers: { satoken: this.user.token },
           })
+          .then((res) => {
+            console.log(res);
+            if (res.data.data == null) {
+              this.seen = true;
+            } else {
+              this.seen = false;
+              this.articles = res.data.data;
+              this.imageArray = [];
 
+              for (let i = 0; i < this.articles.length; i++) {
+                this.loadImage(this.articles[i].commodityId);
+              }
+            }
+          });
+      } else if (val == 5) {
+        //买家申请退货
+        axios
+          .get("http://47.115.209.249:8080/orders/back", {
+            headers: { satoken: this.user.token },
+          })
+          .then((res) => {
+            console.log(res);
+            if (res.data.data == null) {
+              this.seen = true;
+            } else {
+              this.seen = false;
+              this.articles = res.data.data;
+              this.imageArray = [];
 
+              for (let i = 0; i < this.articles.length; i++) {
+                this.loadImage(this.articles[i].commodityId);
+              }
+            }
+          });
       }
-    }
-  }
+      else if (val == 6) {
+        //买家申请退货
+        axios
+          .get("http://47.115.209.249:8080/orders/confirmOrder", {
+            headers: { satoken: this.user.token },
+          })
+          .then((res) => {
+            console.log(res);
+            if (res.data.data == null) {
+              this.seen = true;
+            } else {
+              this.seen = false;
+              this.articles = res.data.data;
+              this.imageArray = [];
 
+              for (let i = 0; i < this.articles.length; i++) {
+                this.loadImage(this.articles[i].commodityId);
+              }
+            }
+          });
+      }
+    },
+  },
 };
 </script>
-  
-<style scoped >
+
+<style scoped>
 .box {
   margin-top: 1%;
   width: 100%;
